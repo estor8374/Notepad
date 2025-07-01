@@ -1,0 +1,22 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-Note Notepad</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>📝 Multi-Note Notepad</h1>
+  <input id="noteTitle" placeholder="Enter note title" />
+  <textarea id="noteContent" placeholder="Write your note here..."></textarea>
+  <div class="buttons">
+    <button onclick="saveNote()">💾 Save Note</button>
+    <button onclick="clearInputs()">🧹 Clear Input</button>
+  </div>
+  <h2>📚 Saved Notes</h2>
+  <ul id="notesList"></ul>
+  <script src="script.js"></script>
+</body>
+</html>
