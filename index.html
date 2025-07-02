@@ -40,7 +40,7 @@
       background: white;
       min-height: 100vh;
       position: relative;
-      padding-bottom: 60px; /* Space for status bar */
+      padding-bottom: 60px;
     }
     
     header {
@@ -494,15 +494,14 @@
       <div class="form-group">
         <label for="noteContent">Content</label>
         <div class="toolbar">
-          <button data-command="bold" title="Bold"><i class="fas fa-bold"></i></button>
-          <button data-command="italic" title="Italic"><i class="fas fa-italic"></i></button>
-          <button data-command="underline" title="Underline"><i class="fas fa-underline"></i></button>
+          <button data-command="bold" title="Bold"><b>B</b></button>
+          <button data-command="italic" title="Italic"><i>I</i></button>
+          <button data-command="underline" title="Underline"><u>U</u></button>
           <button data-command="insertUnorderedList" title="Bullet List"><i class="fas fa-list-ul"></i></button>
           <button data-command="insertOrderedList" title="Numbered List"><i class="fas fa-list-ol"></i></button>
-          <button data-command="undo" title="Undo"><i class="fas fa-undo"></i></button>
-          <button data-command="redo" title="Redo"><i class="fas fa-redo"></i></button>
+          <button data-command="createLink" title="Link"><i class="fas fa-link"></i></button>
         </div>
-        <textarea id="noteContent" placeholder="Write your note here..."></textarea>
+        <div id="noteContent" contenteditable="true" placeholder="Write your note here..."></div>
         <div class="text-stats">
           <span class="word-count">0 words</span>
           <span class="character-count">0 chars</span>
@@ -558,9 +557,6 @@
     <div><span id="lastSaved">-</span></div>
   </div>
   
-  <!-- Hidden file input for import -->
-  <input type="file" id="importFile" accept=".json" style="display: none;">
-  
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // DOM Elements
@@ -596,8 +592,8 @@
         updateNotesList();
         updateStats();
         setDarkMode(isDarkMode);
+        initRichTextEditor();
         
-        // Check if we should show the editor (for larger screens)
         if (window.innerWidth > 768 && notes.length > 0) {
           editorSection.style.display = 'block';
         }
@@ -608,13 +604,9 @@
         const now = new Date();
         const diffInDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
         
-        if (diffInDays === 0) {
-          return 'Today';
-        } else if (diffInDays === 1) {
-          return 'Yesterday';
-        } else if (diffInDays < 7) {
-          return `${diffInDays} days ago`;
-        }
+        if (diffInDays === 0) return 'Today';
+        if (diffInDays === 1) return 'Yesterday';
+        if (diffInDays < 7) return `${diffInDays} days ago`;
         
         return new Intl.DateTimeFormat('en-US', {
           month: 'short',
@@ -630,8 +622,6 @@
       // Update statistics
       function updateStats() {
         totalNotesCount.textContent = notes.length;
-        
-        // Calculate storage used
         const dataSize = JSON.stringify(notes).length;
         storageUsed.textContent = dataSize < 1024 ? 
           `${dataSize} B` : 
@@ -640,7 +630,7 @@
       
       // Update word and character count
       function updateTextStats() {
-        const text = noteContent.value || '';
+        const text = noteContent.textContent || '';
         const words = text.trim() ? text.trim().split(/\s+/).length : 0;
         const characters = text.length;
         
@@ -661,7 +651,7 @@
       // Save note to localStorage
       function saveNote() {
         const title = noteTitle.value.trim();
-        const content = noteContent.value.trim();
+        const content = noteContent.innerHTML.trim();
         const tags = noteTags.value.split(',').map(tag => tag.trim()).filter(tag => tag);
         
         if (!title || !content) {
@@ -702,15 +692,13 @@
         updateStats();
         lastSaved.textContent = 'Now';
         currentNoteId = null;
-        
-        // Hide keyboard on mobile after save
         noteContent.blur();
       }
       
       // Clear input fields
       function clearInputs() {
         noteTitle.value = '';
-        noteContent.value = '';
+        noteContent.innerHTML = '';
         noteTags.value = '';
         currentNoteId = null;
         updateTextStats();
@@ -721,7 +709,6 @@
         clearInputs();
         noteTitle.focus();
         
-        // Scroll to editor on mobile
         if (window.innerWidth <= 768) {
           editorSection.scrollIntoView({ behavior: 'smooth' });
         }
@@ -744,13 +731,12 @@
         const note = notes.find(note => note.id === id);
         if (note) {
           noteTitle.value = note.title;
-          noteContent.value = note.content;
+          noteContent.innerHTML = note.content;
           noteTags.value = note.tags.join(', ');
           currentNoteId = id;
           noteTitle.focus();
           updateTextStats();
           
-          // Scroll to editor on mobile
           if (window.innerWidth <= 768) {
             editorSection.scrollIntoView({ behavior: 'smooth' });
           }
@@ -762,7 +748,6 @@
         let filteredNotes = [...notes];
         const searchTerm = searchNotes.value.toLowerCase();
         
-        // Filter notes based on search
         if (searchTerm) {
           filteredNotes = filteredNotes.filter(note => 
             note.title.toLowerCase().includes(searchTerm) || 
@@ -771,7 +756,6 @@
           );
         }
         
-        // Sort notes
         switch (sortNotes.value) {
           case 'newest':
             filteredNotes.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -833,23 +817,23 @@
       
       // Initialize rich text editor functionality
       function initRichTextEditor() {
-        const toolbarButtons = document.querySelectorAll('.toolbar button');
-        
-        toolbarButtons.forEach(button => {
+        document.querySelectorAll('.toolbar button').forEach(button => {
           button.addEventListener('click', function(e) {
             e.preventDefault();
             const command = this.getAttribute('data-command');
             
-            // Focus the textarea first
             noteContent.focus();
             
             if (command === 'createLink') {
-              const url = prompt('Enter the URL:');
-              if (url) {
-                document.execCommand(command, false, url);
-              }
+              const url = prompt('Enter the URL:', 'https://');
+              if (url) document.execCommand('createLink', false, url);
             } else {
               document.execCommand(command, false, null);
+            }
+            
+            // Update toolbar button states
+            if (['bold', 'italic', 'underline'].includes(command)) {
+              this.classList.toggle('active', document.queryCommandState(command));
             }
           });
         });
@@ -872,14 +856,12 @@
         }
       });
       
-      // Modal close buttons
       closeModalButtons.forEach(button => {
         button.addEventListener('click', function() {
           closeModal();
         });
       });
       
-      // Close modal when clicking outside
       confirmDeleteModal.addEventListener('click', function(e) {
         if (e.target === this) {
           closeModal();
